@@ -3,14 +3,15 @@ using BlackjackBackend.Models;
 
 namespace BlackjackBackend.Services
 {
-    public interface IPlayerManager
+    public interface IPlayerService
     {
         public void AddPlayer(string playerId, Player data);
         public bool RemovePlayer(string playerId);
         public Player? GetPlayerData(string playerId);
     }
 
-    public class PlayerService : IPlayerManager
+    //This service holds the state of all current players in memory (I'm too poor for a database :( )
+    public class PlayerService : IPlayerService
     {
         private readonly ILogger _logger;
         private readonly ConcurrentDictionary<string, Player> _connections = new();

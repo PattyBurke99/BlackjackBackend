@@ -7,24 +7,24 @@ namespace BlackjackBackend
     {
 
         private readonly ILogger<BlackjackHub> _logger;
-        private readonly IPlayerManager _playerManager;
+        private readonly IPlayerService _playerService;
 
-        public BlackjackHub(ILogger<BlackjackHub> logger, IPlayerManager playerManager) 
+        public BlackjackHub(ILogger<BlackjackHub> logger, IPlayerService playerService) 
         {
             _logger = logger;
-            _playerManager = playerManager;
+            _playerService = playerService;
         }
 
         public override Task OnConnectedAsync()
         {
-            _playerManager.AddPlayer(Context.ConnectionId, new Models.Player("Test Name"));
+            _playerService.AddPlayer(Context.ConnectionId, new Models.Player("Test Name"));
             _logger.LogInformation("Connection established!");
             return base.OnConnectedAsync();
         }
 
         public override Task OnDisconnectedAsync(Exception? exception)
         {
-            _playerManager.RemovePlayer(Context.ConnectionId);
+            _playerService.RemovePlayer(Context.ConnectionId);
             _logger.LogInformation("Connection closed!");
             return base.OnDisconnectedAsync(exception);
         }
