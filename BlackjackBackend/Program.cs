@@ -1,3 +1,5 @@
+using BlackjackBackend.Services;
+
 namespace BlackjackBackend
 {
     public class Program
@@ -7,7 +9,7 @@ namespace BlackjackBackend
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddSignalR();
-            builder.Services.AddSingleton<IPlayerManager, PlayerManager>();
+            builder.Services.AddSingleton<IPlayerManager, PlayerService>();
 
             builder.Logging.ClearProviders(); // Optional: Clear default providers
             builder.Logging.AddConsole();    // Add console logging

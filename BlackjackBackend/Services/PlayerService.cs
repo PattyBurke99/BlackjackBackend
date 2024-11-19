@@ -1,21 +1,21 @@
 ﻿using System.Collections.Concurrent;
 using BlackjackBackend.Models;
 
-namespace BlackjackBackend
+namespace BlackjackBackend.Services
 {
-    public interface IPlayerManager 
+    public interface IPlayerManager
     {
         public void AddPlayer(string playerId, Player data);
         public bool RemovePlayer(string playerId);
         public Player? GetPlayerData(string playerId);
     }
 
-    public class PlayerManager : IPlayerManager
+    public class PlayerService : IPlayerManager
     {
         private readonly ILogger _logger;
         private readonly ConcurrentDictionary<string, Player> _connections = new();
 
-        public PlayerManager(ILogger<PlayerManager> logger)
+        public PlayerService(ILogger<PlayerService> logger)
         {
             _logger = logger;
         }

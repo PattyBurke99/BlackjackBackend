@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using BlackjackBackend.Services;
+using Microsoft.AspNetCore.SignalR;
 
 namespace BlackjackBackend
 {
