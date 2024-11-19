@@ -2,12 +2,12 @@
 {
     public class Player
     {
-        private string _id;
+        private string _name;
         private int _money { get; set; }
 
-        public Player(string id) 
+        public Player(string name) 
         { 
-            _id = id;
+            _name = name;
             _money = 100;
         }
     }
