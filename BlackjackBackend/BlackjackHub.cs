@@ -17,15 +17,26 @@ namespace BlackjackBackend
 
         public override Task OnConnectedAsync()
         {
-            _playerService.AddPlayer(Context.ConnectionId, new Models.Player("Test Name"));
-            _logger.LogInformation("Connection established!");
+            string playerName = Context.GetHttpContext()?.Request.Query["name"]!;
+
+            if (playerName == null)
+            {
+                _logger.LogInformation($"Connection {Context.ConnectionId} aborted! No name provided!");
+                Clients.Caller.SendAsync("ReceiveMessage", "Connection Closed! No name provided!");
+
+                Context.Abort();
+                return Task.CompletedTask;
+            }
+
+            _playerService.AddPlayer(Context.ConnectionId, new Models.Player(playerName));
+            _logger.LogInformation($"Connection {Context.ConnectionId} ({playerName}) established!");
             return base.OnConnectedAsync();
         }
 
         public override Task OnDisconnectedAsync(Exception? exception)
         {
             _playerService.RemovePlayer(Context.ConnectionId);
-            _logger.LogInformation("Connection closed!");
+            _logger.LogInformation($"Connection {Context.ConnectionId} closed!");
             return base.OnDisconnectedAsync(exception);
         }
     }
