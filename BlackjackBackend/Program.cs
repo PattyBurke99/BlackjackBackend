@@ -8,6 +8,16 @@ namespace BlackjackBackend
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Add CORS service and allow all origins, methods, and headers
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("Everything", policy =>
+                    policy.AllowAnyMethod()
+                          .AllowAnyHeader()
+                          .AllowCredentials()
+                          .WithOrigins("http://localhost:5173"));
+            });
+
             builder.Services.AddSignalR();
             builder.Services.AddSingleton<IPlayerStateService, PlayerStateService>();
 
@@ -16,6 +26,8 @@ namespace BlackjackBackend
             builder.Logging.AddDebug();      // Add debug output logging
 
             var app = builder.Build();
+
+            app.UseCors("Everything");
 
             app.MapGet("/", () => "Hello World!");
 
