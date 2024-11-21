@@ -1,8 +1,12 @@
 ﻿using BlackjackBackend.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using System.Runtime.InteropServices;
 
 namespace BlackjackBackend
 {
+
+    //Double check async code in this class (really necessary?)
     public class BlackjackHub : Hub
     {
 
@@ -15,29 +19,53 @@ namespace BlackjackBackend
             _playerStateService = playerStateService;
         }
 
-        public override Task OnConnectedAsync()
+        public override async Task<Task> OnConnectedAsync()
         {
             string playerName = Context.GetHttpContext()?.Request.Query["name"]!;
 
             if (playerName == null)
             {
                 _logger.LogInformation($"Connection {Context.ConnectionId} aborted! No name provided!");
-                Clients.Caller.SendAsync("ReceiveMessage", "Connection Closed! No name provided!");
+                await Clients.Caller.SendAsync("info", "Connection Closed! No name provided!");
 
                 Context.Abort();
                 return Task.CompletedTask;
             }
 
-            _playerStateService.AddPlayer(Context.ConnectionId, new Models.Player(playerName));
+            await _playerStateService.AddPlayer(Context.ConnectionId, new Models.Player(Context.ConnectionId, playerName));
             _logger.LogInformation($"Connection {Context.ConnectionId} ({playerName}) established!");
+
+            //Send the client it's connectionId so it can identify itself
+            await Clients.Caller.SendAsync("localId", Context.ConnectionId);
+
+            await BroadcastPlayerData();
+
             return base.OnConnectedAsync();
         }
 
-        public override Task OnDisconnectedAsync(Exception? exception)
+        public override async Task<Task> OnDisconnectedAsync(Exception? exception)
         {
-            _playerStateService.RemovePlayer(Context.ConnectionId);
+            await _playerStateService.RemovePlayer(Context.ConnectionId);
             _logger.LogInformation($"Connection {Context.ConnectionId} closed!");
+
+            await BroadcastPlayerData();
+
             return base.OnDisconnectedAsync(exception);
+        }
+
+        public async Task BroadcastPlayerData()
+        {
+            Models.Player[] playerData = await _playerStateService.GetAllPlayerData();
+            await Clients.All.SendAsync("playerData", playerData);
+            return;
+        }
+
+        public async Task ToggleReady()
+        {
+
+            await _playerStateService.TogglePlayerReady(Context.ConnectionId);
+            await BroadcastPlayerData();
+            return;
         }
     }
 }

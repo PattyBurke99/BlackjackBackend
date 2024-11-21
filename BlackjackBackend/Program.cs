@@ -29,8 +29,6 @@ namespace BlackjackBackend
 
             app.UseCors("Everything");
 
-            app.MapGet("/", () => "Hello World!");
-
             app.MapHub<BlackjackHub>("/signalr");
 
             app.Run();

@@ -5,9 +5,11 @@ namespace BlackjackBackend.Services
 {
     public interface IPlayerStateService
     {
-        public void AddPlayer(string playerId, Player data);
-        public bool RemovePlayer(string playerId);
-        public Player? GetPlayerData(string playerId);
+        public Task<object> AddPlayer(string playerId, Player data);
+        public Task<bool> RemovePlayer(string playerId);
+        public Task<Player?> GetPlayerData(string playerId);
+        public Task<Player[]> GetAllPlayerData();
+        public Task<object> TogglePlayerReady(string connectionId);
     }
 
     //This service holds the state of all current players in memory (I'm too poor for a database :( )
@@ -21,24 +23,47 @@ namespace BlackjackBackend.Services
             _logger = logger;
         }
 
-        public void AddPlayer(string playerId, Player data)
+        public async Task<object> AddPlayer(string playerId, Player data)
         {
-            _connections.TryAdd(playerId, data);
-            //_logger.LogInformation($"playerId {playerId} connected!");
-            return;
+            return await Task.Run(() =>
+            {
+                _connections.TryAdd(playerId, data);
+                return (object)null!;
+            });
         }
 
-        public bool RemovePlayer(string playerId)
+        public async Task<bool> RemovePlayer(string playerId)
         {
-            bool success = _connections.TryRemove(playerId, out _);
-            //_logger.LogInformation($"playerId {playerId} removed: {success}");
-            return success;
+            return await Task.Run(() =>
+            {
+                return _connections.TryRemove(playerId, out _);
+            });
         }
 
-        public Player? GetPlayerData(string playerId)
+        public async Task<Player?> GetPlayerData(string playerId)
         {
-            _connections.TryGetValue(playerId, out var data);
-            return data;
+            return await Task.Run(() =>
+            {
+                _connections.TryGetValue(playerId, out var data);
+                return data;
+            });
+        }
+
+        public async Task<Player[]> GetAllPlayerData()
+        {
+            return await Task.Run(() =>
+            {
+                return _connections.Values.ToArray<Player>();
+            });
+        }
+
+        public async Task<object> TogglePlayerReady(string connectionId)
+        {
+            return await Task.Run(() =>
+            {
+                _connections[connectionId].ToggleReady();
+                return (object)null!;
+            });
         }
     }
 }
