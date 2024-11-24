@@ -1,7 +1,5 @@
 ﻿using BlackjackBackend.Services;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using System.Runtime.InteropServices;
 
 namespace BlackjackBackend
 {
@@ -32,30 +30,30 @@ namespace BlackjackBackend
                 return Task.CompletedTask;
             }
 
-            await _playerStateService.AddPlayer(Context.ConnectionId, new Models.Player(Context.ConnectionId, playerName));
+            await _playerStateService.AddPlayerAsync(Context.ConnectionId, new Models.Player(Context.ConnectionId, playerName));
             _logger.LogInformation($"Connection {Context.ConnectionId} ({playerName}) established!");
 
             //Send the client it's connectionId so it can identify itself
             await Clients.Caller.SendAsync("localId", Context.ConnectionId);
 
-            await BroadcastPlayerData();
+            await BroadcastPlayerDataAsync();
 
             return base.OnConnectedAsync();
         }
 
         public override async Task<Task> OnDisconnectedAsync(Exception? exception)
         {
-            await _playerStateService.RemovePlayer(Context.ConnectionId);
+            await _playerStateService.RemovePlayerAsync(Context.ConnectionId);
             _logger.LogInformation($"Connection {Context.ConnectionId} closed!");
 
-            await BroadcastPlayerData();
+            await BroadcastPlayerDataAsync();
 
             return base.OnDisconnectedAsync(exception);
         }
 
-        public async Task BroadcastPlayerData()
+        public async Task BroadcastPlayerDataAsync()
         {
-            Models.Player[] playerData = await _playerStateService.GetAllPlayerData();
+            Models.Player[] playerData = await _playerStateService.GetAllPlayerDataAsync();
             await Clients.All.SendAsync("playerData", playerData);
             return;
         }
@@ -63,8 +61,8 @@ namespace BlackjackBackend
         public async Task ToggleReady()
         {
 
-            await _playerStateService.TogglePlayerReady(Context.ConnectionId);
-            await BroadcastPlayerData();
+            await _playerStateService.TogglePlayerReadyAsync(Context.ConnectionId);
+            await BroadcastPlayerDataAsync();
             return;
         }
     }
