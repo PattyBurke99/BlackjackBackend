@@ -66,13 +66,20 @@ namespace BlackjackBackend
         public async Task BroadcastGameDataAsync()
         {
             var gameState = await _gameStateService.GetGameStateAsync();
+            _logger.LogInformation($"gameState: ({gameState.Seats[0]?.Id}, {gameState.Seats[0]?.Name})");
             await Clients.All.SendAsync("gameState", gameState);
             return;
         }
 
         public async Task<bool> TakeSeat(int seatNum)
         {
-            bool success = await _gameStateService.PlayerTakeSeat(Context.ConnectionId, seatNum);
+            string? playerName = (await _playerStateService.GetPlayerDataAsync(Context.ConnectionId))?.Name;
+            if (playerName == null)
+            {
+                return false;
+            }
+
+            bool success = await _gameStateService.PlayerTakeSeat(playerId: Context.ConnectionId, playerName: playerName, seatNum);
             if (success)
             {
                 await BroadcastGameDataAsync();
