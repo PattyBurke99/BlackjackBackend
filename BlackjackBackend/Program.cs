@@ -20,6 +20,7 @@ namespace BlackjackBackend
 
             builder.Services.AddSignalR();
             builder.Services.AddSingleton<IPlayerStateService, PlayerStateService>();
+            builder.Services.AddSingleton<IGameStateService, GameStateService>();
 
             builder.Logging.ClearProviders(); // Optional: Clear default providers
             builder.Logging.AddConsole();    // Add console logging

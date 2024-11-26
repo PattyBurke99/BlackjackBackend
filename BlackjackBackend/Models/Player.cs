@@ -6,28 +6,17 @@ namespace BlackjackBackend.Models
     public class Player
     {
         [JsonInclude]
-        private string _id;
+        public string Id { get; set; }
         [JsonInclude]
-        private string _name;
+        public string Name { get; set; }
         [JsonInclude]
-
-        private int _money { get; set; }
-        [JsonInclude]
-
-        private bool _ready { get; set; }
+        public int Money { get; set; }
 
         public Player(string id, string name) 
         { 
-            _id = id;
-            _name = name;
-            _money = 100;
-            _ready = false;
+            Id = id;
+            Name = name;
+            Money = 100;
         }
-
-        public void ToggleReady()
-        {
-            _ready = !_ready;
-        }
-
     }
 }

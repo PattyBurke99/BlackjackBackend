@@ -4,17 +4,18 @@ using Microsoft.AspNetCore.SignalR;
 namespace BlackjackBackend
 {
 
-    //Double check async code in this class (really necessary?)
     public class BlackjackHub : Hub
     {
 
         private readonly ILogger<BlackjackHub> _logger;
         private readonly IPlayerStateService _playerStateService;
+        private readonly IGameStateService _gameStateService;
 
-        public BlackjackHub(ILogger<BlackjackHub> logger, IPlayerStateService playerStateService) 
+        public BlackjackHub(ILogger<BlackjackHub> logger, IPlayerStateService playerStateService, IGameStateService gameStateService)
         {
             _logger = logger;
             _playerStateService = playerStateService;
+            _gameStateService = gameStateService;
         }
 
         public override async Task<Task> OnConnectedAsync()
@@ -30,13 +31,18 @@ namespace BlackjackBackend
                 return Task.CompletedTask;
             }
 
-            await _playerStateService.AddPlayerAsync(Context.ConnectionId, new Models.Player(Context.ConnectionId, playerName));
-            _logger.LogInformation($"Connection {Context.ConnectionId} ({playerName}) established!");
-
-            //Send the client it's connectionId so it can identify itself
-            await Clients.Caller.SendAsync("localId", Context.ConnectionId);
-
-            await BroadcastPlayerDataAsync();
+            bool success = await _playerStateService.AddPlayerAsync(Context.ConnectionId, new Models.Player(Context.ConnectionId, playerName));
+            if (success)
+            {
+                _logger.LogInformation($"Connection {Context.ConnectionId} ({playerName}) established!");
+                await Clients.Caller.SendAsync("localId", Context.ConnectionId);
+                await BroadcastPlayerDataAsync();
+            } else
+            {
+                _logger.LogInformation($"Error adding new player {playerName} ({Context.ConnectionId})! Aborting connection");
+                Context.Abort();
+                return Task.CompletedTask;
+            }
 
             return base.OnConnectedAsync();
         }
@@ -47,7 +53,6 @@ namespace BlackjackBackend
             _logger.LogInformation($"Connection {Context.ConnectionId} closed!");
 
             await BroadcastPlayerDataAsync();
-
             return base.OnDisconnectedAsync(exception);
         }
 
@@ -58,12 +63,25 @@ namespace BlackjackBackend
             return;
         }
 
-        public async Task ToggleReady()
+        public async Task BroadcastGameDataAsync()
         {
-
-            await _playerStateService.TogglePlayerReadyAsync(Context.ConnectionId);
-            await BroadcastPlayerDataAsync();
+            var gameState = await _gameStateService.GetGameStateAsync();
+            await Clients.All.SendAsync("gameState", gameState);
             return;
+        }
+
+        public async Task<bool> TakeSeat(int seatNum)
+        {
+            bool success = await _gameStateService.PlayerTakeSeat(Context.ConnectionId, seatNum);
+            if (success)
+            {
+                await BroadcastGameDataAsync();
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 }
