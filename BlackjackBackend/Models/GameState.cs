@@ -10,6 +10,16 @@
             Id = id;
             Name = name;
         }
+
+        //Required to assess object equality during "TryUpdate" function
+        public override bool Equals(object obj)
+        {
+            if (obj is SeatData other)
+            {
+                return Id == other.Id;
+            }
+            return false;
+        }
     }
 
     public class GameState

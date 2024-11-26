@@ -37,6 +37,7 @@ namespace BlackjackBackend
                 _logger.LogInformation($"Connection {Context.ConnectionId} ({playerName}) established!");
                 await Clients.Caller.SendAsync("localId", Context.ConnectionId);
                 await BroadcastPlayerDataAsync();
+                await BroadcastGameDataAsync();
             } else
             {
                 _logger.LogInformation($"Error adding new player {playerName} ({Context.ConnectionId})! Aborting connection");
@@ -49,6 +50,12 @@ namespace BlackjackBackend
 
         public override async Task<Task> OnDisconnectedAsync(Exception? exception)
         {
+            //broadcast gameState if player was removed from seat
+            bool playerWasSitting = await _gameStateService.PlayerLeaveAllSeats(Context.ConnectionId);
+            if (playerWasSitting) {
+                await BroadcastGameDataAsync();
+            }
+
             await _playerStateService.RemovePlayerAsync(Context.ConnectionId);
             _logger.LogInformation($"Connection {Context.ConnectionId} closed!");
 
@@ -66,12 +73,11 @@ namespace BlackjackBackend
         public async Task BroadcastGameDataAsync()
         {
             var gameState = await _gameStateService.GetGameStateAsync();
-            _logger.LogInformation($"gameState: ({gameState.Seats[0]?.Id}, {gameState.Seats[0]?.Name})");
             await Clients.All.SendAsync("gameState", gameState);
             return;
         }
 
-        public async Task<bool> TakeSeat(int seatNum)
+        public async Task<bool> SelectSeat(int seatNum)
         {
             string? playerName = (await _playerStateService.GetPlayerDataAsync(Context.ConnectionId))?.Name;
             if (playerName == null)
@@ -79,7 +85,7 @@ namespace BlackjackBackend
                 return false;
             }
 
-            bool success = await _gameStateService.PlayerTakeSeat(playerId: Context.ConnectionId, playerName: playerName, seatNum);
+            bool success = await _gameStateService.PlayerSelectSeat(playerId: Context.ConnectionId, playerName: playerName, seatNum);
             if (success)
             {
                 await BroadcastGameDataAsync();
