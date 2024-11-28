@@ -44,31 +44,28 @@ namespace BlackjackBackend.Models
         public DateTime? NextActionTime { get; set; }
         public string? Info { get; set; }
 
-        public async Task UpdateStateAsync(SeatData?[] seatData, GameAction currentAction)
+        public void UpdateState(SeatData?[] seatData, GameAction currentAction)
         {
-            await Task.Run(() =>
+            Seats = seatData;
+
+            if (currentAction != CurrentAction)
             {
-                Seats = seatData;
-
-                if (currentAction != CurrentAction)
+                switch (currentAction)
                 {
-                    switch (currentAction)
-                    {
-                        case GameAction.Standby:
-                            Info = "Waiting for players to start game...";
-                            NextActionTime = null;
-                            break;
-                        case GameAction.Betting:
-                            Info = "Place your bets!";
-                            NextActionTime = DateTime.UtcNow.AddSeconds(20);
-                            break;
-                        default:
-                            break;
-                    }
+                    case GameAction.Standby:
+                        Info = "Waiting for players to start game...";
+                        NextActionTime = null;
+                        break;
+                    case GameAction.Betting:
+                        Info = "Place your bets!";
+                        NextActionTime = DateTime.UtcNow.AddSeconds(20);
+                        break;
+                    default:
+                        break;
                 }
+            }
 
-                CurrentAction = currentAction;
-            });
+            CurrentAction = currentAction;
         }
     }
 }

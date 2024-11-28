@@ -31,7 +31,7 @@ namespace BlackjackBackend
                 return Task.CompletedTask;
             }
 
-            bool success = await _playerStateService.AddPlayerAsync(Context.ConnectionId, new Models.Player(Context.ConnectionId, playerName));
+            bool success = _playerStateService.AddPlayer(Context.ConnectionId, new Models.Player(Context.ConnectionId, playerName));
             if (success)
             {
                 _logger.LogInformation($"Connection {Context.ConnectionId} ({playerName}) established!");
@@ -51,12 +51,12 @@ namespace BlackjackBackend
         public override async Task<Task> OnDisconnectedAsync(Exception? exception)
         {
             //broadcast gameState if player was removed from seat
-            bool playerWasSitting = await _gameStateService.PlayerLeaveAllSeatsAsync(Context.ConnectionId);
+            bool playerWasSitting = _gameStateService.PlayerLeaveAllSeats(Context.ConnectionId);
             if (playerWasSitting) {
                 await BroadcastGameDataAsync();
             }
 
-            await _playerStateService.RemovePlayerAsync(Context.ConnectionId);
+            _playerStateService.RemovePlayer(Context.ConnectionId);
             _logger.LogInformation($"Connection {Context.ConnectionId} closed!");
 
             await BroadcastPlayerDataAsync();
@@ -65,27 +65,27 @@ namespace BlackjackBackend
 
         public async Task BroadcastPlayerDataAsync()
         {
-            Models.Player[] playerData = await _playerStateService.GetAllPlayerDataAsync();
+            Models.Player[] playerData = _playerStateService.GetAllPlayerData();
             await Clients.All.SendAsync("playerData", playerData);
             return;
         }
 
         public async Task BroadcastGameDataAsync()
         {
-            var gameState = await _gameStateService.GetGameStateAsync();
+            var gameState = _gameStateService.GetGameState();
             await Clients.All.SendAsync("gameState", gameState);
             return;
         }
 
         public async Task<bool> SelectSeat(int seatNum)
         {
-            string? playerName = (await _playerStateService.GetPlayerDataAsync(Context.ConnectionId))?.Name;
+            string? playerName = _playerStateService.GetPlayerData(Context.ConnectionId)?.Name;
             if (playerName == null)
             {
                 return false;
             }
 
-            bool success = await _gameStateService.PlayerSelectSeatAsync(playerId: Context.ConnectionId, playerName: playerName, seatNum);
+            bool success = _gameStateService.PlayerSelectSeat(playerId: Context.ConnectionId, playerName: playerName, seatNum);
             if (success)
             {
                 await BroadcastGameDataAsync();
@@ -95,6 +95,11 @@ namespace BlackjackBackend
             {
                 return false;
             }
+        }
+
+        public async Task<bool> IncreaseBet(int amount)
+        {
+            return true;
         }
     }
 }

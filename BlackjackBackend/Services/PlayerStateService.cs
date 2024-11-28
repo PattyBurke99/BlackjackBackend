@@ -5,10 +5,10 @@ namespace BlackjackBackend.Services
 {
     public interface IPlayerStateService
     {
-        public Task<bool> AddPlayerAsync(string playerId, Player data);
-        public Task<bool> RemovePlayerAsync(string playerId);
-        public Task<Player?> GetPlayerDataAsync(string playerId);
-        public Task<Player[]> GetAllPlayerDataAsync();
+        public bool AddPlayer(string playerId, Player data);
+        public bool RemovePlayer(string playerId);
+        public Player? GetPlayerData(string playerId);
+        public Player[] GetAllPlayerData();
     }
 
     //This service holds the state of all current players in memory
@@ -22,28 +22,25 @@ namespace BlackjackBackend.Services
             _logger = logger;
         }
 
-        public async Task<bool> AddPlayerAsync(string playerId, Player data)
+        public bool AddPlayer(string playerId, Player data)
         {
-            return await Task.Run(() => _connections.TryAdd(playerId, data));
+            return _connections.TryAdd(playerId, data);
         }
 
-        public async Task<bool> RemovePlayerAsync(string playerId)
+        public bool RemovePlayer(string playerId)
         {
-            return await Task.Run(() => _connections.TryRemove(playerId, out _));
+            return _connections.TryRemove(playerId, out _);
         }
 
-        public async Task<Player?> GetPlayerDataAsync(string playerId)
+        public Player? GetPlayerData(string playerId)
         {
-            return await Task.Run(() =>
-            {
-                bool success = _connections.TryGetValue(playerId, out var data);
-                return success ? data : null;
-            });
+            bool success = _connections.TryGetValue(playerId, out var data);
+            return success ? data : null;
         }
 
-        public async Task<Player[]> GetAllPlayerDataAsync()
+        public Player[] GetAllPlayerData()
         {
-            return await Task.Run(() => _connections.Values.ToArray<Player>());
+            return _connections.Values.ToArray<Player>();
         }
     }
 }
