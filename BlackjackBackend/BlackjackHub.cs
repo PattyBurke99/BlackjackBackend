@@ -51,7 +51,7 @@ namespace BlackjackBackend
         public override async Task<Task> OnDisconnectedAsync(Exception? exception)
         {
             //broadcast gameState if player was removed from seat
-            bool playerWasSitting = await _gameStateService.PlayerLeaveAllSeats(Context.ConnectionId);
+            bool playerWasSitting = await _gameStateService.PlayerLeaveAllSeatsAsync(Context.ConnectionId);
             if (playerWasSitting) {
                 await BroadcastGameDataAsync();
             }
@@ -85,7 +85,7 @@ namespace BlackjackBackend
                 return false;
             }
 
-            bool success = await _gameStateService.PlayerSelectSeat(playerId: Context.ConnectionId, playerName: playerName, seatNum);
+            bool success = await _gameStateService.PlayerSelectSeatAsync(playerId: Context.ConnectionId, playerName: playerName, seatNum);
             if (success)
             {
                 await BroadcastGameDataAsync();
