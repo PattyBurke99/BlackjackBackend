@@ -40,19 +40,19 @@ namespace BlackjackBackend.Models
     {
         public SeatData?[] Seats { get; set; } = new SeatData?[6];
         [JsonConverter(typeof(JsonStringEnumConverter))]
-        public GameAction CurrentState { get; set; } = GameAction.Standby;
+        public GameAction CurrentAction { get; set; } = GameAction.Standby;
         public DateTime? NextActionTime { get; set; }
         public string? Info { get; set; }
 
-        public async Task UpdateStateAsync(SeatData?[] seatData, GameAction currentState)
+        public async Task UpdateStateAsync(SeatData?[] seatData, GameAction currentAction)
         {
             await Task.Run(() =>
             {
                 Seats = seatData;
 
-                if (currentState != CurrentState)
+                if (currentAction != CurrentAction)
                 {
-                    switch (currentState)
+                    switch (currentAction)
                     {
                         case GameAction.Standby:
                             Info = "Waiting for players to start game...";
@@ -67,7 +67,7 @@ namespace BlackjackBackend.Models
                     }
                 }
 
-                CurrentState = currentState;
+                CurrentAction = currentAction;
             });
         }
     }
