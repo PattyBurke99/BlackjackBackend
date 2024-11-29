@@ -13,11 +13,13 @@ namespace BlackjackBackend.Models
     {
         public string Id { get; set; }
         public string Name { get; set; }
+        public int Bet { get; set; }
 
-        public SeatData(string id, string name) 
+        public SeatData(string id, string name, int bet = 0) 
         {
             Id = id;
             Name = name;
+            Bet = bet;
         }
 
         //Required to assess object equality during "TryUpdate" function

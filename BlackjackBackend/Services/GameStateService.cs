@@ -8,12 +8,13 @@ public interface IGameStateService
     public GameState GetGameState();
     public bool PlayerSelectSeat(string playerId, string playerName, int seatNum);
     public bool PlayerLeaveAllSeats(string playerId);
-    public bool SetCurrentAction(GameAction newAction);
+    public bool ChangeBet(string playerId, int change);
 }
 
 public class GameStateService : IGameStateService
 {
     private readonly ILogger _logger;
+    private readonly IPlayerStateService _playerStateService;
 
     //Probably need lock for this
     private GameState _currentGameState = new();
@@ -23,14 +24,15 @@ public class GameStateService : IGameStateService
 
     private readonly ConcurrentDictionary<int, SeatData?> _seats = new ConcurrentDictionary<int, SeatData?>();
 
-    public GameStateService(ILogger<GameStateService> logger)
+    public GameStateService(ILogger<GameStateService> logger, IPlayerStateService playerStateService)
     {
         _logger = logger;
+        _playerStateService = playerStateService;
 
         // Initialize empty seats
         for (int i = 0; i < 6; i++)
         {
-            _seats[i] = null; 
+            _seats[i] = null;
         }
     }
 
@@ -61,7 +63,7 @@ public class GameStateService : IGameStateService
             {
                 //This is the player already in the seat; than leave
                 bool leftSeat = _seats.TryUpdate(seatNum, null, new SeatData(id: playerId, name: playerName));
-                if (leftSeat && ArePlayersAtTable())
+                if (leftSeat && !ArePlayersAtTable())
                 {
                     //No players left at table; set GamePhase to standy
                     SetCurrentAction(GameAction.Standby);
@@ -102,9 +104,87 @@ public class GameStateService : IGameStateService
         return changesMade;
     }
 
-    public bool SetCurrentAction(GameAction newAction)
+    public bool ChangeBet(string playerId, int change)
     {
+        if (GetCurrentAction() != GameAction.Betting)
+        {
+            return false;
+        }
 
+        SeatData? playerSeatData = null;
+        int playerSeatIndex = -1;
+        for (int i = 0; i < _seats.Count; i++)
+        {
+            if (_seats[i]?.Id == playerId)
+            {
+                playerSeatIndex = i;
+                playerSeatData = _seats[i];
+                break;
+            }
+        }
+
+        if (playerSeatData == null)
+        {
+            return false;
+        }
+
+        Player? player = _playerStateService.GetPlayer(playerId);
+        if (player == null)
+        {
+            return false;
+        }
+
+        if ((change > 0 && player.Money - change < 0) || (change < 0 && playerSeatData.Bet + change < 0))
+        {
+            return false;
+        }
+
+        bool updatedMoney = _playerStateService.PlayerUpdateMoney(playerId, -change);
+        if (!updatedMoney)
+        {
+            return false;
+        }
+
+        SeatData newValue = new SeatData(playerSeatData.Id, playerSeatData.Name, playerSeatData.Bet + change);
+        return _seats.TryUpdate(playerSeatIndex, newValue, playerSeatData);
+    }
+
+    //returns true if more than 1 player at table
+    private bool ArePlayersAtTable()
+    {
+        foreach (SeatData? seat in _seats.Values)
+        {
+            if (seat != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private GameAction? GetCurrentAction()
+    {
+        if (Monitor.TryEnter(_currentActionLock))
+        {
+            try
+            {
+                return _currentAction;
+            }
+            finally
+            {
+                Monitor.Exit(_currentActionLock);
+            }
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    private bool SetCurrentAction(GameAction newAction)
+    {
+        //Possible error case; should probably retry to obtain lock if it fails (?)
         if (Monitor.TryEnter(_currentActionLock))
         {
             try
@@ -122,19 +202,4 @@ public class GameStateService : IGameStateService
             return false;
         }
     }
-
-    //returns true if more than 1 player at table
-    private bool ArePlayersAtTable()
-    {
-        foreach (SeatData? seat in _seats.Values)
-        {
-            if (seat != null)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
 }

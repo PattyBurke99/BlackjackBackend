@@ -7,8 +7,9 @@ namespace BlackjackBackend.Services
     {
         public bool AddPlayer(string playerId, Player data);
         public bool RemovePlayer(string playerId);
-        public Player? GetPlayerData(string playerId);
-        public Player[] GetAllPlayerData();
+        public Player? GetPlayer(string playerId);
+        public Player[] GetAllPlayers();
+        public bool PlayerUpdateMoney(string playerId, int change);
     }
 
     //This service holds the state of all current players in memory
@@ -32,15 +33,27 @@ namespace BlackjackBackend.Services
             return _connections.TryRemove(playerId, out _);
         }
 
-        public Player? GetPlayerData(string playerId)
+        public Player? GetPlayer(string playerId)
         {
             bool success = _connections.TryGetValue(playerId, out var data);
             return success ? data : null;
         }
 
-        public Player[] GetAllPlayerData()
+        public Player[] GetAllPlayers()
         {
             return _connections.Values.ToArray<Player>();
+        }
+
+        public bool PlayerUpdateMoney(string playerId, int change)
+        {
+            Player? player = GetPlayer(playerId);
+            if (player == null)
+            {
+                return false;
+            }
+
+            Player newValue = new Player(playerId, player.Name, player.Money + change);
+            return _connections.TryUpdate(playerId, newValue, player);
         }
     }
 }

@@ -38,7 +38,8 @@ namespace BlackjackBackend
                 await Clients.Caller.SendAsync("localId", Context.ConnectionId);
                 await BroadcastPlayerDataAsync();
                 await BroadcastGameDataAsync();
-            } else
+            }
+            else
             {
                 _logger.LogInformation($"Error adding new player {playerName} ({Context.ConnectionId})! Aborting connection");
                 Context.Abort();
@@ -52,7 +53,8 @@ namespace BlackjackBackend
         {
             //broadcast gameState if player was removed from seat
             bool playerWasSitting = _gameStateService.PlayerLeaveAllSeats(Context.ConnectionId);
-            if (playerWasSitting) {
+            if (playerWasSitting)
+            {
                 await BroadcastGameDataAsync();
             }
 
@@ -65,7 +67,7 @@ namespace BlackjackBackend
 
         public async Task BroadcastPlayerDataAsync()
         {
-            Models.Player[] playerData = _playerStateService.GetAllPlayerData();
+            Models.Player[] playerData = _playerStateService.GetAllPlayers();
             await Clients.All.SendAsync("playerData", playerData);
             return;
         }
@@ -79,7 +81,7 @@ namespace BlackjackBackend
 
         public async Task<bool> SelectSeat(int seatNum)
         {
-            string? playerName = _playerStateService.GetPlayerData(Context.ConnectionId)?.Name;
+            string? playerName = _playerStateService.GetPlayer(Context.ConnectionId)?.Name;
             if (playerName == null)
             {
                 return false;
@@ -91,15 +93,19 @@ namespace BlackjackBackend
                 await BroadcastGameDataAsync();
                 return true;
             }
-            else
-            {
-                return false;
-            }
+            return false;
         }
 
-        public async Task<bool> IncreaseBet(int amount)
+        public async Task ChangeBet(int change)
         {
-            return true;
+            bool success = _gameStateService.ChangeBet(Context.ConnectionId, change);
+            if (success)
+            {
+                await BroadcastPlayerDataAsync();
+                await BroadcastGameDataAsync();
+            }
+            
+            return;
         }
     }
 }
