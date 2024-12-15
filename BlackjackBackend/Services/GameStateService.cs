@@ -9,6 +9,7 @@ public interface IGameStateService
     public bool PlayerSelectSeat(string playerId, string playerName, int seatNum);
     public bool PlayerLeaveAllSeats(string playerId);
     public bool ChangeBet(string playerId, int change, int seatNum);
+    public void DealCards();
 }
 
 public class GameStateService : IGameStateService
@@ -50,6 +51,8 @@ public class GameStateService : IGameStateService
         return _currentGameState;
     }
 
+    //Return type currently set up in weird way here... ONLY return true if Betting stage is triggered
+    //Should be changed at some point - super unintuitive
     public bool PlayerSelectSeat(string playerId, string playerName, int seatNum)
     {
         if (seatNum < 0 || seatNum > 5)
@@ -63,7 +66,6 @@ public class GameStateService : IGameStateService
         {
             if (seatData.Id == playerId)
             {
-                _logger.LogInformation($"Player leaving seat... Bet: {seatData.Bet}");
                 if (seatData.Bet > 0)
                 {
                     _playerStateService.PlayerUpdateMoney(playerId, seatData.Bet);
@@ -76,7 +78,6 @@ public class GameStateService : IGameStateService
                     //No players left at table; set GamePhase to standy
                     SetCurrentAction(GameAction.Standby);
                 }
-                return leftSeat;
             }
             return false;
         }
@@ -87,8 +88,9 @@ public class GameStateService : IGameStateService
         {
             //Logic for starting game if it is not in progress goes here
             SetCurrentAction(GameAction.Betting);
+            return true;
         }
-        return satDown;
+        return false;
     }
 
     //Called on player disconnect
@@ -148,6 +150,11 @@ public class GameStateService : IGameStateService
         return _seats.TryUpdate(seatNum, newValue, playerSeatData);
     }
 
+    public void DealCards()
+    {
+        SetCurrentAction(GameAction.Dealing);
+    }
+
     //returns true if more than 1 player at table
     private bool ArePlayersAtTable()
     {
@@ -177,6 +184,7 @@ public class GameStateService : IGameStateService
         }
         else
         {
+            _logger.LogError("Unable to obtain lock in GameStateService/GetCurrentAction()!");
             return null;
         }
     }
@@ -198,6 +206,7 @@ public class GameStateService : IGameStateService
         }
         else
         {
+            _logger.LogError("Unable to obtain lock in GameStateService/SetCurrentAction()!");
             return false;
         }
     }

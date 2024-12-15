@@ -1,5 +1,6 @@
 ﻿using BlackjackBackend.Services;
 using Microsoft.AspNetCore.SignalR;
+using System;
 
 namespace BlackjackBackend
 {
@@ -10,12 +11,14 @@ namespace BlackjackBackend
         private readonly ILogger<BlackjackHub> _logger;
         private readonly IPlayerStateService _playerStateService;
         private readonly IGameStateService _gameStateService;
+        private readonly ITaskSchedulerService _taskSchedulerService;
 
-        public BlackjackHub(ILogger<BlackjackHub> logger, IPlayerStateService playerStateService, IGameStateService gameStateService)
+        public BlackjackHub(ILogger<BlackjackHub> logger, IPlayerStateService playerStateService, IGameStateService gameStateService, ITaskSchedulerService taskSchedulerService)
         {
             _logger = logger;
             _playerStateService = playerStateService;
             _gameStateService = gameStateService;
+            _taskSchedulerService = taskSchedulerService;
         }
 
         public override async Task<Task> OnConnectedAsync()
@@ -74,27 +77,27 @@ namespace BlackjackBackend
 
         public async Task BroadcastGameDataAsync()
         {
-            var gameState = _gameStateService.GetGameState();
+            Models.GameState gameState = _gameStateService.GetGameState();
             await Clients.All.SendAsync("gameState", gameState);
             return;
         }
 
-        public async Task<bool> SelectSeat(int seatNum)
+        public async Task SelectSeat(int seatNum)
         {
             string? playerName = _playerStateService.GetPlayer(Context.ConnectionId)?.Name;
             if (playerName == null)
             {
-                return false;
+                return;
             }
 
-            bool success = _gameStateService.PlayerSelectSeat(playerId: Context.ConnectionId, playerName: playerName, seatNum);
-            if (success)
+            bool bettingTriggered = _gameStateService.PlayerSelectSeat(playerId: Context.ConnectionId, playerName: playerName, seatNum);
+            if (bettingTriggered)
             {
-                await BroadcastPlayerDataAsync();
-                await BroadcastGameDataAsync();
-                return true;
+                _taskSchedulerService.ScheduleTask(SchedulableTask.StartDealing);
             }
-            return false;
+
+            await BroadcastGameDataAsync();
+            return;
         }
 
         public async Task ChangeBet(int change, int seatNum)

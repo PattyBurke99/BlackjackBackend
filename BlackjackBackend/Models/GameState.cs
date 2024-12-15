@@ -6,7 +6,8 @@ namespace BlackjackBackend.Models
     public enum GameAction
     {
         Standby,
-        Betting
+        Betting,
+        Dealing,
     }
 
     public class SeatData
