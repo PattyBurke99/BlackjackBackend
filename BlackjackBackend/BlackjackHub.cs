@@ -1,4 +1,5 @@
-﻿using BlackjackBackend.Services;
+﻿using BlackjackBackend.Models;
+using BlackjackBackend.Services;
 using Microsoft.AspNetCore.SignalR;
 using System;
 
@@ -84,6 +85,12 @@ namespace BlackjackBackend
 
         public async Task SelectSeat(int seatNum)
         {
+            GameAction currentAction = _gameStateService.GetGameState().CurrentAction;
+            if (currentAction != GameAction.Standby && currentAction != GameAction.Betting)
+            {
+                return;
+            }
+
             string? playerName = _playerStateService.GetPlayer(Context.ConnectionId)?.Name;
             if (playerName == null)
             {
@@ -96,6 +103,7 @@ namespace BlackjackBackend
                 _taskSchedulerService.ScheduleTask(SchedulableTask.StartDealing);
             }
 
+            await BroadcastPlayerDataAsync();
             await BroadcastGameDataAsync();
             return;
         }

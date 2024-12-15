@@ -35,29 +35,34 @@ namespace BlackjackBackend.Services
             switch (task)
             {
                 case SchedulableTask.StartDealing:
-                    _ = Task.Run(async () =>
-                    {
-                        DateTime? triggeredActionTime = _gameStateService.GetGameState().NextActionTime;
-                        if (triggeredActionTime == null)
-                        {
-                            return;
-                        }
-
-                        await Task.Delay(TimeSpan.FromSeconds(BettingActionTime));
-
-                        if (_gameStateService.GetGameState().NextActionTime == triggeredActionTime)
-                        {
-                            _gameStateService.DealCards();
-                            Models.GameState gameState = _gameStateService.GetGameState();
-                            await _hubContext.Clients.All.SendAsync("gameState", gameState);
-                        }
-
-                        return;
-                    });
+                    ScheduleDealingStart();
                     break;
                 default:
                     break;
             }
+        }
+
+        private void ScheduleDealingStart()
+        {
+            _ = Task.Run(async () =>
+            {
+                DateTime? triggeredActionTime = _gameStateService.GetGameState().NextActionTime;
+                if (triggeredActionTime == null)
+                {
+                    return;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(BettingActionTime));
+
+                if (_gameStateService.GetGameState().NextActionTime == triggeredActionTime)
+                {
+                    _gameStateService.DealCards();
+                    Models.GameState gameState = _gameStateService.GetGameState();
+                    await _hubContext.Clients.All.SendAsync("gameState", gameState);
+                }
+
+                return;
+            });
         }
     }
 }
