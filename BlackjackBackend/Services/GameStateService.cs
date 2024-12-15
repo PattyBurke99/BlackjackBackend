@@ -8,7 +8,7 @@ public interface IGameStateService
     public GameState GetGameState();
     public bool PlayerSelectSeat(string playerId, string playerName, int seatNum);
     public bool PlayerLeaveAllSeats(string playerId);
-    public bool ChangeBet(string playerId, int change);
+    public bool ChangeBet(string playerId, int change, int seatNum);
 }
 
 public class GameStateService : IGameStateService
@@ -57,10 +57,18 @@ public class GameStateService : IGameStateService
             return false;
         }
 
-        if (_seats[seatNum] != null)
+        _seats.TryGetValue(seatNum, out SeatData? seatData);
+
+        if (seatData != null)
         {
-            if (_seats[seatNum]?.Id == playerId)
+            if (seatData.Id == playerId)
             {
+                _logger.LogInformation($"Player leaving seat... Bet: {seatData.Bet}");
+                if (seatData.Bet > 0)
+                {
+                    _playerStateService.PlayerUpdateMoney(playerId, seatData.Bet);
+                }
+
                 //This is the player already in the seat; than leave
                 bool leftSeat = _seats.TryUpdate(seatNum, null, new SeatData(id: playerId, name: playerName));
                 if (leftSeat && !ArePlayersAtTable())
@@ -104,26 +112,16 @@ public class GameStateService : IGameStateService
         return changesMade;
     }
 
-    public bool ChangeBet(string playerId, int change)
+    public bool ChangeBet(string playerId, int change, int seatNum)
     {
         if (GetCurrentAction() != GameAction.Betting)
         {
             return false;
         }
 
-        SeatData? playerSeatData = null;
-        int playerSeatIndex = -1;
-        for (int i = 0; i < _seats.Count; i++)
-        {
-            if (_seats[i]?.Id == playerId)
-            {
-                playerSeatIndex = i;
-                playerSeatData = _seats[i];
-                break;
-            }
-        }
+        _seats.TryGetValue(seatNum, out SeatData? playerSeatData);
 
-        if (playerSeatData == null)
+        if (playerSeatData == null || playerSeatData.Id != playerId)
         {
             return false;
         }
@@ -142,11 +140,12 @@ public class GameStateService : IGameStateService
         bool updatedMoney = _playerStateService.PlayerUpdateMoney(playerId, -change);
         if (!updatedMoney)
         {
+            _logger.LogError("GameStateServices/ChangeBet(): Update money failed! (Race condition?)");
             return false;
         }
 
         SeatData newValue = new SeatData(playerSeatData.Id, playerSeatData.Name, playerSeatData.Bet + change);
-        return _seats.TryUpdate(playerSeatIndex, newValue, playerSeatData);
+        return _seats.TryUpdate(seatNum, newValue, playerSeatData);
     }
 
     //returns true if more than 1 player at table

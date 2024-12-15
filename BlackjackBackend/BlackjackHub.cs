@@ -90,15 +90,16 @@ namespace BlackjackBackend
             bool success = _gameStateService.PlayerSelectSeat(playerId: Context.ConnectionId, playerName: playerName, seatNum);
             if (success)
             {
+                await BroadcastPlayerDataAsync();
                 await BroadcastGameDataAsync();
                 return true;
             }
             return false;
         }
 
-        public async Task ChangeBet(int change)
+        public async Task ChangeBet(int change, int seatNum)
         {
-            bool success = _gameStateService.ChangeBet(Context.ConnectionId, change);
+            bool success = _gameStateService.ChangeBet(Context.ConnectionId, change, seatNum);
             if (success)
             {
                 await BroadcastPlayerDataAsync();
